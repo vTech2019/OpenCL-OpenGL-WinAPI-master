@@ -151,48 +151,6 @@ __kernel void MAD_block_matching(__global uchar4* result_buffer, __global float4
 
 }
 
-__kernel void version_1_MSE_stabilization_image_rgba(__global uchar4* result_buffer, read_only image2d_t image_current, read_only image2d_t image_next, const int width,const int height, int block_x, int block_y,  int radius){
-	
-	int local_id = get_local_id(0) + get_local_id(1) * get_local_size(0);
-	int local_size = get_local_size(0)*get_local_size(1);
-	int size_block = block_x * block_y;
-	int f_size_block = convert_float(size_block);
-	int h_border = height - block_y;
-	int w_border = width - block_x;
-	for (int y = get_global_id(1)*block_y; y< h_border; y+=get_global_size(1) ){
-		for (int x = get_global_id(0)*block_x; x < w_border; x+=get_global_size(0)){	
-			const int2 global_index = (int2)(x, y);
-			float min = FLT_MAX;
-			int2 index = 0;
-			for (int i = -radius; i <= radius; i++){
-				for (int j = -radius; j <= radius; j++){
-					float4 sum = 0.0f;
-					for (int h = 0; h < block_y; h++){
-						for (int w = 0; w < block_x; w++){
-							const int2 index = global_index + (int2)(w, h);
-							const float4 current_image = read_imagef(image_current, index);
-							const float4 next_image = read_imagef(image_next, index + (int2)(j , i));
-							const float4 sub_data = 255.0f * (current_image - next_image);
-							sum.x += sub_data.x < 0 ? -sub_data.x : sub_data.x;
-						}
-					}
-					sum = sum/(f_size_block);
-					const float result = sum.x ;
-					index = result < min ? (int2)(j, i) : index;
-					min = result < min ? result : min;
-				}	
-			}
-			for (int h = index.y, _h=0; _h <= block_y; h++, _h++){
-				for (int w = index.x, _w=0; _w <= block_x; w++, _w++){
-					const float4 next_image =  read_imagef(image_next, global_index + (int2)(w, h));
-					const uchar4 _next_image = convert_uchar4_sat_rte(255.0f *next_image);
-					result_buffer[(_h + y) * width + (_w + x)] = _next_image;
-				}
-			}
-			
-		}
-	}
-}
 __attribute__((mangled_name(stabilization_image_part1_buffer)))
 __kernel void stabilization_image_part1(const __global uchar4* restrict image_current,const __global uchar4* restrict image_next, __global int2* sync_info, 
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
@@ -282,67 +240,65 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 }
 __kernel void stabilization_image_part2(__global int2* sync_info,
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius, __local int* local_data){
-	
+	int local_size = get_local_size(0);
 	int number_blocks_x = (width / step_x) - 1;
 	int number_blocks_y = (height / step_y) - 1;
 	int size_block = block_x * block_y;
 	int global_id = get_global_id(0);
-	int local_index = get_local_id(0);
-	int local_size = get_local_size(0);
+	int local_id = get_local_id(0);
 	int global_step = get_global_size(0);
 	int global_work_end = number_blocks_x * number_blocks_y * local_size;
-	int number_steps_block = size_block / local_size + (size_block % local_size ? 1 : 0);
-	int current_step = convert_int(native_powr(convert_float(2), convert_float(convert_int_sat_rtp(log2(convert_float(local_size))))));
+
+	#ifdef LOCAL_STEPS
+		const int current_step = LOCAL_STEPS;
+		#ifdef NUMBER_STEPS_BLOCK
+		const int number_steps_block = NUMBER_STEPS_BLOCK;
+		#else
+		const int number_steps_block = size_block / local_size + (size_block % local_size ? 1 : 0);
+		#endif
+	#else
+		const int number_steps_block = size_block / local_size + (size_block % local_size ? 1 : 0);
+		const int current_step = convert_int(native_powr(convert_float(2), convert_float(convert_int_sat_rtp(log2(convert_float(local_size))))));
+	#endif
+
+	for (int i=get_local_id(0); i < 2 * current_step; i +=  get_local_size(0))
+		local_data[i] = INT_MAX;
+	barrier(CLK_LOCAL_MEM_FENCE);	
+
+	 __local int* local_min = local_data + local_id;
+	 __local int* local_index = local_data + current_step + local_id;
+
 	for (int id = global_id; id < global_work_end; id+= global_step){
 		int id_block = (id / local_size);
 		int global_offset = id_block * size_block;
-		int local_id = local_index;
 		int index_block = 0;
 		int min_sum = INT_MAX;
 		int min_index = INT_MAX;
-	#ifdef NUMBER_STEPS_BLOCK
-				while (index_block < NUMBER_STEPS_BLOCK){ 
-	#else
-				while (index_block < number_steps_block){ 
-	#endif
+		local_id = get_local_id(0);
+		while (index_block < number_steps_block){ 
 				const int2 info_sync = local_id < size_block ? sync_info[global_offset + local_id] : (int2)INT_MAX;
-
-				
-				barrier(CLK_GLOBAL_MEM_FENCE);	
-				local_data[local_index] = info_sync.x;
-				local_data[local_size + local_index] = info_sync.y;
-				if (info_sync.x < min_sum){ 
-					min_sum = info_sync.x;
-					min_index = info_sync.y;
-				}
-
+				local_min[0] = info_sync.x;
+				local_index[0] = info_sync.y;
 				barrier(CLK_LOCAL_MEM_FENCE);	
-	#ifdef LOCAL_STEPS
-				for (int step_block = LOCAL_STEPS  >> 1; step_block > 0; step_block>>=1 ){
-	#else
 				for (int step_block = current_step  >> 1; step_block > 0; step_block>>=1 ){
-	#endif
-					if (local_index < step_block){ 
-						if (local_data[local_index] > local_data[local_index + step_block]){ 
-							local_data[local_index] = local_data[local_index + step_block];
-							local_data[local_size + local_index]= local_data[local_size + local_index + step_block];
+					if ( get_local_id(0) < step_block){ 
+						int current_value =  local_min[step_block];
+						if (local_min[0] >current_value){ 
+							local_min[0] = current_value;
+							local_index[0] = local_index[step_block];
 						}
-								int res = local_data[local_index+ step_block];
-								if (id == 0){
-										printf("%d %d %d %d\n", min_sum, min_index, res, step_block);
-								}
 					}
 					barrier(CLK_LOCAL_MEM_FENCE);
 				}
 				local_id += local_size;
 				index_block += 1;
-				if (local_data[local_index]  < min_sum){ 
-
-					min_sum = local_data[local_index] ;
-					min_index = local_data[local_size + local_index];
+				int current_value =  local_min[0];
+				if (current_value  < min_sum){ 
+					min_sum = current_value;
+					min_index =  local_index[0];
 				}
 			} 
-			if (local_index == 0)
+			if (get_local_id(0) == 0)
 				sync_info[id_block] = (int2)(min_sum ,min_index);
 		}
 }
@@ -351,49 +307,22 @@ __kernel void stabilization_image_part3(__global uchar4* image, __global int2* s
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
 	int number_blocks_x = (width / step_x) - 1;
 	int number_blocks_y = (height / step_y) - 1;
-	int end_block_x = (number_blocks_x * block_x);
-	int end_block_y = number_blocks_y * block_y;	
-	float w = 4.0f * sqrt(2.0f * log(2.0f));
-	float sigma = radius / w;
-	float norm = radius * radius ; 
 	int part_block_x = (radius - 1) / 2; 
 	int part_block_y = (radius - 1) / 2; 
-	for (int idy = get_global_id(1); idy < end_block_y; idy+= get_global_size(1)){
-		for (int idx = get_global_id(0); idx < end_block_x; idx+= get_global_size(0)){ 	
-		
-			int id_block_x = idx / block_x;
-			int id_block_y = idy / block_y;
+	for (int idy = get_global_id(1); idy < height; idy+= get_global_size(1)){
+		for (int idx = get_global_id(0); idx < width; idx+= get_global_size(0)){ 	
+			int id_block_x = idx / step_x;
+			int id_block_y = idy / step_y;
+
 			int offset_block_x = idx % block_x;
 			int offset_block_y = idy % block_y;
 			int center_block_x = (id_block_x + 1) * step_x;
 			int center_block_y = (id_block_y + 1) * step_y;
-			int start_block_x = center_block_x - (block_x / 2 - 1) + offset_block_x;
-			int start_block_y = center_block_y - (block_y / 2 - 1) + offset_block_y;
-			uchar4 pixel = image[start_block_y * width + start_block_x];
-			int2 information = sync_info[id_block_y * block_x + id_block_x];
-			image[start_block_y * width + start_block_x]  = (uchar4)0;
-			if (center_block_x + radius < start_block_x && center_block_x - radius > start_block_x )
-				if (center_block_y + radius < start_block_y && center_block_y - radius > start_block_y ){
-					float4 result_gauss = Gaussian_filter_xy(convert_float(start_block_y - center_block_y ), convert_float(start_block_x - center_block_x ), sigma);
-					result_gauss = norm * convert_float4(pixel) * result_gauss;
-					image[start_block_y * width + start_block_x]  = convert_uchar4_sat_rte(result_gauss);
-				}
+
 			image[center_block_y * width + center_block_x]  = (uchar4)255;
 		}
 	}
 }
 
-#ifdef cl_khr_mipmap_image
-#pragma OPENCL EXTENSION cl_khr_mipmap_image : enable
-__kernel void image_stabilization_float4_image_rgba(read_only image2d_t image_current, read_only image2d_t image_next, write_only image2d_t image_write, const int width_current,const int height_current, const int width_next,const int height_next){
-
-    int idx = get_global_id(0);
-    int idy = get_global_id(1);
-    int image_current_num_mip_levels = get_image_num_mip_levels(image_current);
-    int image_next_num_mip_levels = get_image_num_mip_levels(image_next);
-
-
-}
-#endif
 
 )==="

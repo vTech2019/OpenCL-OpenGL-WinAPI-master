@@ -9,8 +9,8 @@
 #include <assert.h>
 #include <math.h>
 #include <memory.h>
-#pragma comment(lib, "x86_64/OpenCL.lib")
-//#pragma comment(lib, "OpenCL.lib")
+//#pragma comment(lib, "x86_64/OpenCL.lib")
+#pragma comment(lib, "OpenCL.lib")
 #pragma warning(disable:4996)
 
 #define CL_CHECK(codeError, stringError)											\
