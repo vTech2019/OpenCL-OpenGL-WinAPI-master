@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Исходные файлы">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Файлы заголовков">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="asm">
+      <UniqueIdentifier>{2fedb489-8163-4be0-ab7e-72ba9d74929a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\Convolution_Neural_Network">
+      <UniqueIdentifier>{c5e3c6dc-d54b-4b53-8646-fd05e95717ab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\Convolution_Neural_Network">
+      <UniqueIdentifier>{0c015124-59e4-4339-b2de-61ce03e76815}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы ресурсов\Convolution_Neural_Network">
+      <UniqueIdentifier>{c3d3138a-bc4d-406d-a873-404b38a10562}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\GPU_CPU_devices">
+      <UniqueIdentifier>{f5f74f05-4abe-4043-b71a-34578b3f2dc2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\GPU_CPU_devices">
+      <UniqueIdentifier>{44475ae3-30e4-404b-bdd8-4682d76034d3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="GPGPU test.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Load_Save_Images.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="WinAPI.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Figures.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="glImageView.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Image Stabilization\Image_Stabilization.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="Convolution_Neural_Network.cpp">
+      <Filter>Исходные файлы\Convolution_Neural_Network</Filter>
+    </ClCompile>
+    <ClCompile Include="AMP_device.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+    <ClCompile Include="AMP_code.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+    <ClCompile Include="clDevice.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+    <ClCompile Include="glDevice.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+    <ClCompile Include="cpuDevice.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+    <ClCompile Include="cpuCode.cpp">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Load_Save_Images.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="WinAPI.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Structures.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Figures.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="glImageView.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Image Stabilization\Image_Stabilization.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="Convolution_Neural_Network.h">
+      <Filter>Файлы заголовков\Convolution_Neural_Network</Filter>
+    </ClInclude>
+    <ClInclude Include="clDevice.h">
+      <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
+    </ClInclude>
+    <ClInclude Include="AMP_device.h">
+      <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
+    </ClInclude>
+    <ClInclude Include="glDevice.h">
+      <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
+    </ClInclude>
+    <ClInclude Include="cpuDevice.h">
+      <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="fourier_transform.cl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="filters.cl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="Fractal.cl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="image_stabilization.cl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="area_view.glsl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
+    <None Include="convolution.cl">
+      <Filter>Файлы ресурсов\Convolution_Neural_Network</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <MASM Include="Image Stabilization\cpu_sse2_Gauss_function.asm">
+      <Filter>asm</Filter>
+    </MASM>
+  </ItemGroup>
+</Project>
