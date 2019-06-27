@@ -23,7 +23,7 @@
     <ProjectGuid>{3CD866AC-16E6-4B71-A2BB-B86D5DED3F68}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>GPGPUtest</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -41,13 +41,15 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
+    <SpectreMitigation>false</SpectreMitigation>
+    <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
@@ -89,17 +91,16 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(CUDA_PATH)\include;$(AMDAPPSDKROOT)/include; $(OpenCV)/include</AdditionalIncludeDirectories>
-      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
       <OpenMPSupport>true</OpenMPSupport>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <UseMSVC>true</UseMSVC>
+      <Optimization>Disabled</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;$(AMDAPPSDKROOT)/lib/x86_64;$(OpenCV)/x64/vc15/lib</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
-      <AdditionalOptions>/DEBUG:FULL %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -128,6 +129,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <UseMSVC>true</UseMSVC>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -136,7 +138,6 @@
       <AdditionalLibraryDirectories>$(CUDA_PATH)\lib\x64;$(AMDAPPSDKROOT)/lib/x86_64;$(OpenCV)/x64/vc15/lib</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
-      <AdditionalOptions>/DEBUG:FULL %(AdditionalOptions)</AdditionalOptions>
     </Link>
     <MASM />
   </ItemDefinitionGroup>
@@ -152,6 +153,7 @@
     <ClCompile Include="GPGPU test.cpp" />
     <ClCompile Include="glImageView.cpp" />
     <ClCompile Include="Image Stabilization\Image_Stabilization.cpp" />
+    <ClCompile Include="Init_graphics_libraries.cpp" />
     <ClCompile Include="Load_Save_Images.cpp" />
     <ClCompile Include="WinAPI.cpp" />
   </ItemGroup>
@@ -164,6 +166,7 @@
     <ClInclude Include="glDevice.h" />
     <ClInclude Include="glImageView.h" />
     <ClInclude Include="Image Stabilization\Image_Stabilization.h" />
+    <ClInclude Include="Init_graphics_libraries.h" />
     <ClInclude Include="Load_Save_Images.h" />
     <ClInclude Include="Structures.h" />
     <ClInclude Include="WinAPI.h" />

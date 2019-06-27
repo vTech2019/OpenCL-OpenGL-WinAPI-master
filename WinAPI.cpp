@@ -1,18 +1,38 @@
 #include "WinAPI.h"
 
-void WinAPI::pushFunction(void(*ptrLoopFunctions)(void *argument),  void *argument)
+void WinAPI::getScreenSize(size_t& width, size_t& height)
+{
+	RECT rect;
+	if (GetWindowRect(GetDesktopWindow(), &rect)) {
+		width = rect.right - rect.left;
+		height = rect.bottom - rect.top;
+	}
+}
+
+void WinAPI::getWindowSize(size_t& width, size_t& height)
+{
+	RECT rect;
+	if (GetWindowRect(main_window, &rect)) {
+		width = rect.right - rect.left;
+		height = rect.bottom - rect.top;
+	}
+}
+void WinAPI::hideWindow()
+{
+	ShowWindow(main_window, SW_HIDE);
+}
+
+void WinAPI::pushFunction(void(*ptrLoopFunctions)(void* argument), void* argument)
 {
 	numberLoopFunctions++;
 	void** memoryPtrFunctions = (void**)realloc(loopFunctions, numberLoopFunctions * sizeof(void(*)(void*)));
-	loopFunctions = (void(**)(void *argument))memoryPtrFunctions;
+	loopFunctions = (void(**)(void* argument))memoryPtrFunctions;
 	ptrArgument = (void**)realloc(ptrArgument, numberLoopFunctions * sizeof(void*));
 	loopFunctions[numberLoopFunctions - 1] = ptrLoopFunctions;
 	ptrArgument[numberLoopFunctions - 1] = argument;
 }
 
-
 std::vector<std::wstring> WinAPI::GetNameFolderFiles(std::wstring way) {
-
 	WIN32_FIND_DATA FileData;
 	HANDLE hFind;
 	std::vector<std::wstring> fileName;
@@ -30,34 +50,38 @@ std::vector<std::wstring> WinAPI::GetNameFolderFiles(std::wstring way) {
 	return fileName;
 }
 
-void WinAPI::InitWindow(wchar_t* name_window) {
-
+void WinAPI::InitWindow(wchar_t* name_window, size_t width, size_t height, size_t position_x, size_t position_y, unsigned long parameters_window) {
 	HINSTANCE hInstance = GetModuleHandle(NULL);
-	WNDCLASSW window_class;
-	window_class.style = CS_HREDRAW | CS_VREDRAW;
-	window_class.cbClsExtra = 0;
-	window_class.cbWndExtra = 0;
-	window_class.lpszClassName = name_window;
-	window_class.hInstance = hInstance;
-	window_class.hbrBackground = GetSysColorBrush(COLOR_3DFACE);
-	window_class.lpszMenuName = NULL;
-	window_class.lpfnWndProc = WndProc;
-	window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
-	window_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	if (!RegisterClass(&window_class))
-	{
-		HWND hWnd = GetForegroundWindow();
-		MessageBox(hWnd, L"Problem with WNDCLASS!", L"Problem with WNDCLASS!", MB_OK);
+	if (!RegisterClass(&window_class)) {
+		window_class.style = CS_HREDRAW | CS_VREDRAW;
+		window_class.cbClsExtra = 0;
+		window_class.cbWndExtra = 0;
+		window_class.lpszClassName = name_window;
+		window_class.hInstance = hInstance;
+		window_class.hbrBackground = GetSysColorBrush(COLOR_3DFACE + 1);
+		window_class.lpszMenuName = NULL;
+		window_class.lpfnWndProc = WndProc;
+		window_class.hCursor = LoadCursor(NULL, IDC_ARROW);
+		window_class.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+		if (!RegisterClass(&window_class))
+		{
+			HWND hWnd = GetForegroundWindow();
+			MessageBox(hWnd, L"Problem with WNDCLASS!", L"Problem with WNDCLASS!", MB_OK);
+		}
+		RegisterClassW(&window_class);
 	}
-	RegisterClassW(&window_class);
-	main_window = CreateWindowW(window_class.lpszClassName, name_window, WS_OVERLAPPEDWINDOW | WS_VISIBLE, 100, 100, 1280, 720, NULL, NULL, hInstance, NULL);
+
+	main_window = CreateWindowW(window_class.lpszClassName, name_window, parameters_window, position_x - width / 2, position_y - height / 2, width, height, NULL, NULL, hInstance, NULL);
 }
 
-void WinAPI::InitOpenGLContext() {
-
+void WinAPI::InitOpenGLContext(HGLRC& gl_context) {
+	if (gl_context != NULL) {
+		wglMakeCurrent(NULL, NULL);
+		wglDeleteContext(gl_context);
+	}
 	HDC hdc = GetDC(main_window);
 	PIXELFORMATDESCRIPTOR pfd;
-	ZeroMemory(&pfd, sizeof(pfd));     
+	ZeroMemory(&pfd, sizeof(pfd));
 	pfd.nSize = sizeof(pfd);
 	pfd.nVersion = 1;
 	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
@@ -70,9 +94,10 @@ void WinAPI::InitOpenGLContext() {
 	gl_context = wglCreateContext(hdc);
 	wglMakeCurrent(hdc, gl_context);
 }
-
+void WinAPI::updateWindow() {
+	UpdateWindow(main_window);
+}
 void WinAPI::DispatchMessageWindow() {
-
 	if (!main_window)
 		return;
 	ShowWindow(main_window, SW_SHOW);
@@ -82,11 +107,11 @@ void WinAPI::DispatchMessageWindow() {
 		DispatchMessage(&msg);
 	}
 }
-void WinAPI::PushFunction(void(*ptrLoopFunctions)(void *argument), void *argument)
+void WinAPI::PushFunction(void(*ptrLoopFunctions)(void* argument), void* argument)
 {
 	numberLoopFunctions++;
 	void** memoryPtrFunctions = (void**)realloc(loopFunctions, numberLoopFunctions * sizeof(void(*)(void*)));
-	loopFunctions = (void(**)(void *argument))memoryPtrFunctions;
+	loopFunctions = (void(**)(void* argument))memoryPtrFunctions;
 	ptrArgument = (void**)realloc(ptrArgument, numberLoopFunctions * sizeof(void*));
 	loopFunctions[numberLoopFunctions - 1] = ptrLoopFunctions;
 	ptrArgument[numberLoopFunctions - 1] = argument;
@@ -94,33 +119,27 @@ void WinAPI::PushFunction(void(*ptrLoopFunctions)(void *argument), void *argumen
 
 WinAPI::WinAPI()
 {
+	memset(this, 0, sizeof(*this));
 }
-
 
 WinAPI::~WinAPI()
 {
 }
 
-
 LRESULT CALLBACK WinAPI::WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
 	LONG_PTR winptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
-	HDC hDC; 
-	PAINTSTRUCT ps; 
-	RECT rect; 
-	COLORREF colorText = RGB(255, 255, 255); 
+	HDC hDC;
+	PAINTSTRUCT ps;
 	switch (message)
 	{
 	case WM_CREATE:
 		break;
 	case WM_PAINT:
-		hDC = BeginPaint(hwnd, &ps); 
+		hDC = BeginPaint(hwnd, &ps);
 		for (size_t i = 0; i < numberLoopFunctions; i++) {
-		    loopFunctions[i](ptrArgument[i]);
+			loopFunctions[i](ptrArgument[i]);
 		}
-		GetClientRect(hwnd, &rect); 
-		SetTextColor(hDC, colorText);
-		DrawText(hDC, L"hELLo", -1, &rect, DT_SINGLELINE | DT_CENTER | DT_VCENTER); 
 		SwapBuffers(hDC);
 		EndPaint(hwnd, &ps);
 		break;

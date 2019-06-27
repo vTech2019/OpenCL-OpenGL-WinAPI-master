@@ -1,27 +1,32 @@
 #pragma once
+#define UNICODE
+//#include "glDevice.h"
 #include <windows.h>
-#include "glDevice.h"
 #include <vector>
+#include <string>
 class WinAPI
 {
-	
+
+	WNDCLASSW window_class;
 	HWND main_window;
-	HGLRC gl_context;
 	MSG  msg;
 	static size_t numberLoopFunctions;
 	static void(**loopFunctions)(void* argument);
 	static void** ptrArgument;
 public:
+	void updateWindow();
+	void getScreenSize(size_t& width, size_t& height);
+	void getWindowSize(size_t& width, size_t& height);
+	void hideWindow();
 	void pushFunction(void(*ptrLoopFunctions)(void *argument), void * argument);
-	static std::vector<std::wstring> GetNameFolderFiles(std::wstring way);
-	void InitWindow(wchar_t * name_window);
-	void InitOpenGLContext();
+	void InitWindow(wchar_t * name_window, size_t width, size_t height, size_t position_x, size_t position_y, unsigned long parameters_window);
+	void InitOpenGLContext(HGLRC& gl_context);
 	void DispatchMessageWindow();
 	WinAPI();
 	~WinAPI(); 
-	void pushFunction(void(glDevice::*ptrLoopFunctions)(void *argument), void *argument);
-
+	//void pushFunction(void(glDevice::*ptrLoopFunctions)(void *argument), void *argument);
 	void PushFunction(void(*ptrLoopFunctions)(void *argument), void * argument);
+	static std::vector<std::wstring> GetNameFolderFiles(std::wstring way);
 	static LRESULT WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam);
 };
 

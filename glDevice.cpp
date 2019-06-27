@@ -31,6 +31,16 @@ void glDevice::programInfoLog(GLuint shader)
 	}
 }
 
+HGLRC glDevice::get_glContext()
+{
+	return gl_context;
+}
+
+void glDevice::set_glContext(HGLRC gl_context)
+{
+	this->gl_context = gl_context;
+}
+
 size_t glDevice::push2DTexture(GLubyte4* image, GLuint width, GLuint height) {
 	gl_texture_list* nextPtrImageDevice = (gl_texture_list*)calloc(1, sizeof(gl_texture_list));
 	if (!headPtrTexturesDevice) {
@@ -250,7 +260,10 @@ void glDevice::setViewport(GLint x, GLint y, GLint width, GLint height) {
 }
 glDevice::glDevice()
 {
-
+	gl_window = new (WinAPI);
+	gl_window->InitWindow(L"OpenGL", 1920 / 2, 1080 / 2, 1920 / 2, 1080 / 2, WS_DISABLED);
+	gl_window->hideWindow();
+	gl_window->InitOpenGLContext(gl_context);
 	for (size_t i = 0; i < sizeof(*this); i++)
 		((GLubyte*)this)[i] = 0;
 	projectionMatrix = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
@@ -286,7 +299,8 @@ void Draw(void* argument) {
 
 glDevice::~glDevice()
 {
-
+	if (gl_window)
+		delete gl_window;
 	if (headPtrVAODevice) {
 		while (headPtrVAODevice->next != NULL) {
 			gl_VAO_list* PtrMemoryDevice = headPtrVAODevice;

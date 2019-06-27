@@ -1,4 +1,5 @@
 #pragma once
+#include "WinApi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <malloc.h>
@@ -38,9 +39,11 @@ struct gl_VAO_list {
 	gl_VAO_list* previous;
 	gl_VAO_list* next;
 };
-	void Draw(void * argument);
+void Draw(void* argument);
 class glDevice
 {
+	WinAPI* gl_window;
+	HGLRC gl_context;
 	matrix_16  projectionMatrix;
 	matrix_16 matrixView;
 	matrix_16  matrixRotate;
@@ -63,21 +66,22 @@ class glDevice
 	size_t numberVertexShaders;
 	size_t numberComputeShaders;
 	size_t numberObjectsVAO;
-	void checkErrorShader(GLuint shader, const GLchar * text, GLuint status);
-	void programInfoLog(GLuint shader); 
+	void checkErrorShader(GLuint shader, const GLchar* text, GLuint status);
+	void programInfoLog(GLuint shader);
 public:
+	HGLRC get_glContext();
+	void set_glContext(HGLRC gl_context);
 	size_t push2DTexture(GLubyte4* image, GLuint width, GLuint height);
 	size_t push2DTexture(GLubyte* image, GLuint width, GLuint height);
-	bool pushShaders(GLuint * typeShader, GLchar ** code, size_t length);
+	bool pushShaders(GLuint* typeShader, GLchar** code, size_t length);
 
 	size_t pushProgram();
 
-	size_t pushVAO(void * data, size_t lengthData, size_t numberCoordinates, GLuint figure);
+	size_t pushVAO(void* data, size_t lengthData, size_t numberCoordinates, GLuint figure);
 
 	void pushBufferInVAO(size_t gl_buffer, size_t gl_VAO, size_t numberCoordinates, GLint attributeLocation);
 
-
-	size_t pushBuffer(void * data, size_t lengthData, size_t typeBuffer, GLenum renderingMode);
+	size_t pushBuffer(void* data, size_t lengthData, size_t typeBuffer, GLenum renderingMode);
 
 	void useProgram(size_t address);
 
@@ -89,21 +93,20 @@ public:
 
 	void useVAO(size_t address);
 
-	GLint getProgramResourceIndex(size_t address, GLuint typeBuffer, GLchar * name);
+	GLint getProgramResourceIndex(size_t address, GLuint typeBuffer, GLchar* name);
 
-	GLint getUniformLocation(size_t address, GLchar * name);
+	GLint getUniformLocation(size_t address, GLchar* name);
 
 	GLint getAttributeLocation(size_t address, GLchar* name);
 
 	void glDevice::setViewport(GLint x, GLint y, GLint width, GLint height);
 
-	GLfloat * returnMatrixView();
+	GLfloat* returnMatrixView();
 
-	GLfloat * returnMatrixProjection();
+	GLfloat* returnMatrixProjection();
 
-	GLfloat * returnMatrixRotate();
+	GLfloat* returnMatrixRotate();
 
 	glDevice();
 	~glDevice();
 };
-

@@ -156,11 +156,15 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
 	if (step_x < 1 && step_y < 1)
 		return;
-	int number_blocks_x = (width / step_x) - 1;
-	int number_blocks_y = (height / step_y) - 1;
+	float w = 4.0f * sqrt(2.0f * log(2.0f));
+	float sigma = block_x / w;
+	int number_blocks_x = (width / step_x) ;
+	int number_blocks_y = (height / step_y) ;
 	int end_block_x = (number_blocks_x * block_x);
 	int end_block_y = (number_blocks_y * block_y);
-	int size_block = block_x * block_y;
+	float size_block = convert_float(block_x * block_y);
+	int part_block_x = (radius - 1) / 2; 
+	int part_block_y = (radius - 1) / 2; 
 	for (int idy = get_global_id(1); idy < end_block_y; idy+= get_global_size(1)){
 		for (int idx = get_global_id(0); idx < end_block_x; idx+= get_global_size(0)){ 
 			
@@ -189,8 +193,8 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 
 
 			int2 index = (int2)0;
-			uint4 sum = (uint4)0;
-			int min_sum = (int)INT_MAX;
+			float4 sum = (float4)0;
+			float min_sum = (int)INT_MAX;
 	#ifdef RADIUS_BLOCK
 			for (int i = -RADIUS_BLOCK + offset_block_y; i < RADIUS_BLOCK + block_y; i+=block_y){
 				for (int j = -RADIUS_BLOCK + offset_block_x; j < RADIUS_BLOCK + block_x; j+=block_x){
@@ -198,7 +202,7 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 			for (int i = -radius + offset_block_y; i < radius + block_y; i+=block_y){
 				for (int j = -radius + offset_block_x; j < radius + block_x; j+=block_x){
 	#endif
-					sum = (uint4)0;
+					sum = (float4)0;
 					
 	#ifdef SIZE_BLOCK_Y
 					for (int h = 0; h < SIZE_BLOCK_Y; h++){
@@ -211,15 +215,16 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 					for (int h = 0; h < block_y; h++){
 						for (int w = 0; w < block_x; w++){
 	#endif
+							float4 result_gauss = Gaussian_filter_xy(convert_float(h - part_block_y), convert_float(w - part_block_x), sigma);
 							int index_x = (x + w);
 							int index_y = (y + h);
-							int4 current_image = (index_x < 0 || index_x >= width || index_y < 0 || index_y >= height) ? (int4)0 :
-								convert_int4(image_current[index_y * width + index_x]);
+							float4 current_image = (index_x < 0 || index_x >= width || index_y < 0 || index_y >= height) ? (float4)0 :
+								convert_float4(image_current[index_y * width + index_x]);
 							index_x += j;
 							index_y += i;
-							int4 next_image = (index_x < 0 || index_x >= width || index_y < 0 || index_y >= height) ? (int4)0 :
-								convert_int4(image_next[index_y * width + index_x]);
-							sum += abs(current_image - next_image);
+							float4 next_image = (index_x < 0 || index_x >= width || index_y < 0 || index_y >= height) ? (float4)0 :
+								convert_float4(image_next[index_y * width + index_x]);
+							sum += fabs(current_image - next_image);
 						}
 					}
 					sum = sum / (size_block);
@@ -228,21 +233,22 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 					min_sum = sum.x < min_sum ? sum.x : min_sum;
 				}
 			}	
+
 	#ifdef RADIUS_BLOCK
 			index += RADIUS_BLOCK;
 	#else
 			index += radius;
 	#endif
 			int index_sync = ((id_block_y) * number_blocks_x + id_block_x) * size_block + (offset_block_y * block_y + offset_block_x );
-			sync_info[index_sync] = (int2)(min_sum, index.y * (block_x + radius * 2) + index.x );
+			sync_info[index_sync] = (int2)(convert_int(min_sum), index.y * (block_x + radius * 2) + index.x );
 		}
 	}
 }
 __kernel void stabilization_image_part2(__global int2* sync_info,
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius, __local int* local_data){
 	int local_size = get_local_size(0);
-	int number_blocks_x = (width / step_x) - 1;
-	int number_blocks_y = (height / step_y) - 1;
+	int number_blocks_x = (width / step_x) ;
+	int number_blocks_y = (height / step_y) ;
 	int size_block = block_x * block_y;
 	int global_id = get_global_id(0);
 	int local_id = get_local_id(0);
@@ -302,15 +308,62 @@ __kernel void stabilization_image_part2(__global int2* sync_info,
 				sync_info[id_block] = (int2)(min_sum ,min_index);
 		}
 }
+__kernel void stabilization_image_part3(__global uchar4* image, __global int2* sync_info,
+	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
+	int number_blocks_x = (width / step_x) ;
+	int number_blocks_y = (height / step_y) ;
+	int part_block_x = (radius - 1) / 2; 
+	int part_block_y = (radius - 1) / 2; 
+	int size_block_fild_x = radius * 2 + block_x;
+	int size_block_fild_y = radius * 2 + block_y;
+	int2 centering_xy = (int2)(-size_block_fild_x / 2, -size_block_fild_y / 2);
+	for (int idy = get_global_id(1); idy < number_blocks_y; idy+= get_global_size(1)){
+		int center_block_y = (idy + 1) * step_y;
+		for (int idx = get_global_id(0); idx < number_blocks_x; idx+= get_global_size(0)){ 	
+			int center_block_x = (idx + 1) * step_x;
+			int2 index = sync_info[(idy) * width + (idx)];
+			int2 index_xy = (int2)(index.y % size_block_fild_y, index.y / size_block_fild_x);
+			index_xy += centering_xy;
+			sync_info[(idy) * width + (idx)].y = center_block_y  - part_block_y;
+			sync_info[(idy) * width + (idx)].x = center_block_x - part_block_x;
 
+			*((__global uchar16*)&image[(center_block_y  - part_block_y) * width + (center_block_x - part_block_x - 2)])  = (uchar16)0;
+			*((__global uchar16*)&image[(center_block_y + index_xy.y) * width + center_block_x + index_xy.x - 2])  = (uchar16)(255);
+
+		}
+	}
+}
+
+/*
 __kernel void stabilization_image_part3(__global uchar4* image, __global int2* sync_info,
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
 	int number_blocks_x = (width / step_x) - 1;
 	int number_blocks_y = (height / step_y) - 1;
 	int part_block_x = (radius - 1) / 2; 
 	int part_block_y = (radius - 1) / 2; 
+	int size_block_fild_x = radius * 2 + block_x;
+	int size_block_fild_y = radius * 2 + block_y;
+	int2 centering_xy = (int2)(-size_block_fild_x / 2, -size_block_fild_y / 2);
 	for (int idy = get_global_id(1); idy < height; idy+= get_global_size(1)){
 		for (int idx = get_global_id(0); idx < width; idx+= get_global_size(0)){ 	
+			int start_x = idx / (step_x - part_block_x);
+			int start_y = idy / (step_y - part_block_y);
+			int end_x = idx / (step_x + part_block_x);
+			int end_y = idy / (step_y + part_block_y);
+			if (idy < start_y * (step_y - part_block_y)) return; 
+			if (idx < start_x * (step_x - part_block_x)) return;
+			if (idx > end_x * (step_x + part_block_x)) return;
+			if (idy > end_y * (step_y + part_block_y)) return;
+			int local_index_x = idx % (step_x - part_block_x);
+			int local_index_y = idy % (step_y - part_block_y);
+			for (int i = start_y; i < end_y; i++){ 
+				for (int j = start_x; j < end_x; j++){ 
+					int2 index = sync_info[i * number_blocks_y + j];
+					int2 index_xy = (int2)(index.y / size_block_fild_x, index.y % size_block_fild_x);
+					index_xy -= centering_xy;
+				
+				}
+			} 
 			int id_block_x = idx / step_x;
 			int id_block_y = idy / step_y;
 
@@ -323,6 +376,6 @@ __kernel void stabilization_image_part3(__global uchar4* image, __global int2* s
 		}
 	}
 }
-
+*/
 
 )==="

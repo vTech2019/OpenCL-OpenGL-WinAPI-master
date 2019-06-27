@@ -72,6 +72,9 @@
     <ClCompile Include="cpuCode.cpp">
       <Filter>Исходные файлы\GPU_CPU_devices</Filter>
     </ClCompile>
+    <ClCompile Include="Init_graphics_libraries.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Load_Save_Images.h">
@@ -106,6 +109,9 @@
     </ClInclude>
     <ClInclude Include="cpuDevice.h">
       <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
+    </ClInclude>
+    <ClInclude Include="Init_graphics_libraries.h">
+      <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
