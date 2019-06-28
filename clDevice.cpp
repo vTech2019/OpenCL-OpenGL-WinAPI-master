@@ -544,6 +544,7 @@ cl_bool clDevice::startCalculate(cl_uint index_program, cl_uint index_kernel, si
 	const cl_ulong total_time = time_end - time_start;
 	const cl_double time = cl_double(total_time) / 1000000.0;
 	printf("Execution time:\t\t%0f ms\n", time);
+	all_time += time;
 	return true;
 }
 cl_bool clDevice::startCalculate(cl_uint index_program, cl_uint index_kernel, size_t globalWork[3]) {
@@ -566,6 +567,7 @@ cl_bool clDevice::startCalculate(cl_uint index_program, cl_uint index_kernel, si
 	const cl_ulong total_time = time_end - time_start;
 	const cl_double time = total_time / 1000000.0;
 	printf("Execution time:\t\t%0f ms\n", time);
+	all_time += time;
 	return true;
 }
 cl_bool clDevice::copy2DImage(size_t image_src, size_t image_dst, size_t width, size_t height) {

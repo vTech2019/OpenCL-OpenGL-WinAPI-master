@@ -105,6 +105,7 @@ class clDevice
 	//cl_uint numberBufferDevice;
 	//cl_uint numberImageDevice;
 public:
+	double all_time = 0;
 	structDeviceInfo DeviceInfo;
 	clDevice(clPlatform* platformData, cl_uint indexDevice);
 	~clDevice();

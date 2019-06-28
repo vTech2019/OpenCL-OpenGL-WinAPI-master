@@ -39,6 +39,7 @@ Image_Stabilization::Image_Stabilization(clDevice* device, cl_uint width, cl_uin
 	gpu_data->kernel_image_stabilization_part1 = device->findKernel((const cl_char*)"stabilization_image_part1", sizeof("stabilization_image_part1"), gpu_data->index_program_stabilization);
 	gpu_data->kernel_image_stabilization_part2 = device->findKernel((const cl_char*)"stabilization_image_part2", sizeof("stabilization_image_part2"), gpu_data->index_program_stabilization);
 	gpu_data->kernel_image_stabilization_part3 = device->findKernel((const cl_char*)"stabilization_image_part3", sizeof("stabilization_image_part3"), gpu_data->index_program_stabilization);
+	gpu_data->kernel_image_stabilization_part4 = device->findKernel((const cl_char*)"stabilization_image_part4", sizeof("stabilization_image_part4"), gpu_data->index_program_stabilization);
 	size_t number_blocks_x = (width / step_x) ;
 	size_t number_blocks_y = (height / step_y) ;
 	size_t x = sqrt(float(gpu_data->_device->DeviceInfo.maxWorkGroupSize));
@@ -67,6 +68,7 @@ Image_Stabilization::Image_Stabilization(clDevice* device, cl_uint width, cl_uin
 	gpu_data->norm_image_gpu_1 = device->mallocImage2DMemory(NULL, height, width, length_row_pitch_data, CL_RGBA, CL_UNORM_INT8);
 	gpu_data->memory_buffer_0 = device->mallocBufferMemory(NULL, width * height * sizeof(cl_uchar4));
 	gpu_data->memory_buffer_1 = device->mallocBufferMemory(NULL, width * height * sizeof(cl_uchar4));
+	gpu_data->memory_buffer_2 = device->mallocBufferMemory(NULL, width * height * sizeof(cl_uchar4));
 	gpu_data->sync_buffer = device->mallocBufferMemory(NULL, gpu_data->length_sync_buffer * sizeof(cl_int2));
 	ptr_stabilization_function = &Image_Stabilization::gpu_Stabilization_function;
 
@@ -83,69 +85,17 @@ Image_Stabilization::Image_Stabilization(clDevice* device, cl_uint width, cl_uin
 void Image_Stabilization::gpu_Stabilization_function(void* data_next_image, void* result) {
 	size_t buffers[] = { gpu_data->memory_buffer_0, gpu_data->memory_buffer_1, gpu_data->sync_buffer };
 	gpu_data->_device->writeBuffer(data_next_image, gpu_data->memory_buffer_0, gpu_data->width * gpu_data->height * sizeof(uchar4));
+	gpu_data->_device->writeBuffer(data_next_image, gpu_data->memory_buffer_2, gpu_data->width * gpu_data->height * sizeof(uchar4));
 	gpu_data->_device->writeBuffer(result, gpu_data->memory_buffer_1, gpu_data->width * gpu_data->height * sizeof(uchar4));
 	gpu_data->_device->callOpenclFunction(gpu_data->index_program_stabilization, gpu_data->kernel_image_stabilization_part1, buffers, NULL, (cl_char*)& gpu_data->stabilization_indices, (cl_int*)& gpu_data->stabilization_length_args, 3, 0, 7, gpu_data->stabilization_globalWork, gpu_data->stabilization_localWork);
 
 	gpu_data->_device->callOpenclFunction(gpu_data->index_program_stabilization, gpu_data->kernel_image_stabilization_part2, buffers + 2, NULL, (cl_char*)& gpu_data->stabilization_indices, (cl_int*)& gpu_data->stabilization_length_args, 1, 0, 8, gpu_data->stabilization_part2_globalWork, gpu_data->stabilization_part2_localWork);
 	gpu_data->_device->callOpenclFunction(gpu_data->index_program_stabilization, gpu_data->kernel_image_stabilization_part3, buffers + 1, NULL, (cl_char*)&gpu_data->stabilization_indices, (cl_int*)&gpu_data->stabilization_length_args, 2, 0, 7, gpu_data->stabilization_globalWork);
+	//*buffers = gpu_data->memory_buffer_2;
+	//gpu_data->_device->callOpenclFunction(gpu_data->index_program_stabilization, gpu_data->kernel_image_stabilization_part4, buffers, NULL, (cl_char*)& gpu_data->stabilization_indices, (cl_int*)& gpu_data->stabilization_length_args, 3, 0, 7, gpu_data->stabilization_globalWork);
+
 	gpu_data->_device->readBuffer(result, gpu_data->memory_buffer_1, gpu_data->width * gpu_data->height * sizeof(uchar4));
-	std::vector<cl_int2> data(gpu_data->length_sync_buffer);
-	gpu_data->_device->readBuffer(data.data(), gpu_data->sync_buffer, gpu_data->length_sync_buffer * sizeof(cl_uint2));
 
-	int number_blocks_x = (gpu_data->width / gpu_data->stabilization_indices.s2) ;
-	int number_blocks_y = (gpu_data->height / gpu_data->stabilization_indices.s3) ;
-	int part_block_x = (gpu_data->stabilization_indices.s6 - 1) / 2;
-	int part_block_y = (gpu_data->stabilization_indices.s6 - 1) / 2;
-	int size_block_fild_x = gpu_data->stabilization_indices.s6 * 2 + gpu_data->stabilization_indices.s4;
-	int size_block_fild_y = gpu_data->stabilization_indices.s6 * 2 + gpu_data->stabilization_indices.s5;
-	cl_int2 centering_xy;
-	centering_xy.x = -size_block_fild_x / 2;
-	centering_xy.y = -size_block_fild_y / 2;
-	for (int idy = 0; idy < number_blocks_y; idy += 1) {
-		int center_block_y = (idy + 1) * gpu_data->stabilization_indices.s3;
-		for (int idx = 0; idx < number_blocks_x; idx += 1) {
-			int center_block_x = (idx + 1) * gpu_data->stabilization_indices.s2;
-			cl_int2 index = data[(idy)* number_blocks_x + (idx)];
-			cl_int2 index_xy;
-			index_xy.s0 = index.y % size_block_fild_x;
-			index_xy.s1 = index.y / size_block_fild_y;
-			index_xy.s0 += centering_xy.s0;
-			index_xy.s1 += centering_xy.s1;
-			index.x = (center_block_y - part_block_y) * gpu_data->width + (center_block_x - part_block_x);
-			index.y = (center_block_y + index_xy.y) * gpu_data->width + center_block_x + index_xy.x;
-			index.x = 0;
-		}
-	}
-
-
-	//for (int i = 0; i < 1; i++) {
-	//	for (int j = 0; j < 1; j++) {
-	//		for (int h = 0; h < block_y; h++) {
-	//			for (int w = 0; w < block_x; w++) {
-	//				int index_sync = ((i)* number_blocks_x + j) * block_x * block_y + (h * block_y + w);
-	//				printf("%i ", data[index_sync].y);
-
-	//			}
-	//			printf("\n");
-	//		}
-	//		printf("%d %d \n", i, j);
-	//	}
-	//}
-
-	//for (int i = 0; i < number_blocks_y; i++) {
-	//	for (int j = 0; j < number_blocks_x; j++) {
-	//		printf("%i ", data[i * number_blocks_x + j].x);
-	//	}
-	//	printf("%\n");
-	//}
-	//for (int i = 0; i < number_blocks_y; i++) {
-	//	for (int j = 0; j < number_blocks_x; j++) {
-	//		printf("%i ", data[i * number_blocks_x + j].y);
-	//	}
-	//	printf("%\n");
-	//}
-
-	//printf("%\n");
 }
 
 void Image_Stabilization::AMP_Stabilization_function(void* data_next_image, void* result) {
@@ -169,6 +119,7 @@ Image_Stabilization::~Image_Stabilization()
 		gpu_data->_device->freeMemory(gpu_data->norm_image_gpu_1);
 		gpu_data->_device->freeMemory(gpu_data->memory_buffer_0);
 		gpu_data->_device->freeMemory(gpu_data->memory_buffer_1);
+		gpu_data->_device->freeMemory(gpu_data->memory_buffer_2);
 		free(gpu_data);
 	}
 	if (cpu_data) {

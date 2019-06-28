@@ -186,8 +186,8 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 	#endif
 			int center_block_x = (id_block_x + 1) * step_x;
 			int center_block_y = (id_block_y + 1) * step_y;
-			int start_block_x = center_block_x - (block_x / 2 - 1) + offset_block_x;
-			int start_block_y = center_block_y - (block_y / 2 - 1) + offset_block_y;
+			int start_block_x = center_block_x - (block_x / 2) + offset_block_x;
+			int start_block_y = center_block_y - (block_y / 2) + offset_block_y;
 			int y = start_block_y;
 			int x = start_block_x;
 
@@ -224,7 +224,7 @@ __kernel void stabilization_image_part1(const __global uchar4* restrict image_cu
 							index_y += i;
 							float4 next_image = (index_x < 0 || index_x >= width || index_y < 0 || index_y >= height) ? (float4)0 :
 								convert_float4(image_next[index_y * width + index_x]);
-							sum += fabs(current_image - next_image);
+							sum += fabs(current_image - next_image );
 						}
 					}
 					sum = sum / (size_block);
@@ -316,66 +316,63 @@ __kernel void stabilization_image_part3(__global uchar4* image, __global int2* s
 	int part_block_y = (radius - 1) / 2; 
 	int size_block_fild_x = radius * 2 + block_x;
 	int size_block_fild_y = radius * 2 + block_y;
-	int2 centering_xy = (int2)(-size_block_fild_x / 2, -size_block_fild_y / 2);
+	int2 centering_xy = (int2)(block_x / 2, block_y / 2);
+	int number_blocks = number_blocks_y * number_blocks_x;
 	for (int idy = get_global_id(1); idy < number_blocks_y; idy+= get_global_size(1)){
 		int center_block_y = (idy + 1) * step_y;
 		for (int idx = get_global_id(0); idx < number_blocks_x; idx+= get_global_size(0)){ 	
 			int center_block_x = (idx + 1) * step_x;
-			int2 index = sync_info[(idy) * width + (idx)];
-			int2 index_xy = (int2)(index.y % size_block_fild_y, index.y / size_block_fild_x);
-			index_xy += centering_xy;
-			sync_info[(idy) * width + (idx)].y = center_block_y  - part_block_y;
-			sync_info[(idy) * width + (idx)].x = center_block_x - part_block_x;
-
-			*((__global uchar16*)&image[(center_block_y  - part_block_y) * width + (center_block_x - part_block_x - 2)])  = (uchar16)0;
-			*((__global uchar16*)&image[(center_block_y + index_xy.y) * width + center_block_x + index_xy.x - 2])  = (uchar16)(255);
-
-		}
-	}
-}
-
-/*
-__kernel void stabilization_image_part3(__global uchar4* image, __global int2* sync_info,
-	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
-	int number_blocks_x = (width / step_x) - 1;
-	int number_blocks_y = (height / step_y) - 1;
-	int part_block_x = (radius - 1) / 2; 
-	int part_block_y = (radius - 1) / 2; 
-	int size_block_fild_x = radius * 2 + block_x;
-	int size_block_fild_y = radius * 2 + block_y;
-	int2 centering_xy = (int2)(-size_block_fild_x / 2, -size_block_fild_y / 2);
-	for (int idy = get_global_id(1); idy < height; idy+= get_global_size(1)){
-		for (int idx = get_global_id(0); idx < width; idx+= get_global_size(0)){ 	
-			int start_x = idx / (step_x - part_block_x);
-			int start_y = idy / (step_y - part_block_y);
-			int end_x = idx / (step_x + part_block_x);
-			int end_y = idy / (step_y + part_block_y);
-			if (idy < start_y * (step_y - part_block_y)) return; 
-			if (idx < start_x * (step_x - part_block_x)) return;
-			if (idx > end_x * (step_x + part_block_x)) return;
-			if (idy > end_y * (step_y + part_block_y)) return;
-			int local_index_x = idx % (step_x - part_block_x);
-			int local_index_y = idy % (step_y - part_block_y);
-			for (int i = start_y; i < end_y; i++){ 
-				for (int j = start_x; j < end_x; j++){ 
-					int2 index = sync_info[i * number_blocks_y + j];
-					int2 index_xy = (int2)(index.y / size_block_fild_x, index.y % size_block_fild_x);
-					index_xy -= centering_xy;
-				
+			int2 index = sync_info[idy * number_blocks_x + idx];
+			int2 index_xy = (int2)(index.y % size_block_fild_x, index.y / size_block_fild_x);
+			index_xy -= (int2)radius;
+			sync_info[(idy) * number_blocks_x + (idx)] = (int2)(center_block_x, center_block_y)  - index_xy - centering_xy;
+			float step_x = index_xy.x < index_xy.y ?  convert_float(index_xy.x) / convert_float(index_xy.y):   1.0f;
+			float step_y = index_xy.y < index_xy.x ?   convert_float(index_xy.y) / convert_float(index_xy.x) :   1.0f;
+			float endy = convert_float_rtn(index_xy.y);
+			float endx = convert_float_rtn(index_xy.x);
+			if (index_xy.x == 0){
+				for (int i = 0; i <endy;i+=step_y)
+					image[(center_block_y +i  ) * width + center_block_x ] = (uchar4)255;
+			}else if(index_xy.y == 0){
+				for (int j = 0; j <endx;j+=step_x)
+					image[(center_block_y  ) * width + center_block_x + j ] = (uchar4)255;
+			}else
+				for (float i = 0, j = 0; fabs(i) < fabs(endy) && fabs(j) < fabs(endx) ; i+= step_y, j+= step_x)
+				{
+					image[(center_block_y + convert_int_rtn(i)  ) * width + center_block_x + convert_int_rtn(j) ] = (uchar4)255;
 				}
-			} 
-			int id_block_x = idx / step_x;
-			int id_block_y = idy / step_y;
 
-			int offset_block_x = idx % block_x;
-			int offset_block_y = idy % block_y;
-			int center_block_x = (id_block_x + 1) * step_x;
-			int center_block_y = (id_block_y + 1) * step_y;
-
-			image[center_block_y * width + center_block_x]  = (uchar4)255;
+			image[(center_block_y  ) * width + (center_block_x  )]  = (uchar4)0;
+			image[(center_block_y + index_xy.y) * width + center_block_x + index_xy.x]  = (uchar4)(255);
 		}
 	}
 }
-*/
+
+__kernel void stabilization_image_part4(__global uchar4* image_result,const __global uchar4* restrict image_next, __global int2* sync_info, 
+	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
+	int number_blocks_x = (width / step_x) ;
+	int number_blocks_y = (height / step_y) ;
+	int global_work_end_x = number_blocks_x * block_x;
+	int global_work_end_y = number_blocks_y * block_y;
+
+	for (int idy = get_global_id(1); idy < global_work_end_y; idy+= get_global_size(1)){
+		int index_block_y = idy / block_y;
+		int offset_block_y = idy % block_y;
+		int center_block_y = (index_block_y + 1) * step_y;
+		int start_block_y = center_block_y - (block_y / 2) ;
+		for (int idx = get_global_id(0); idx < global_work_end_x; idx+= get_global_size(0)){ 
+			int index_block_x = idx / block_x;
+			int offset_block_x = idx % block_x;
+			int center_block_x = (index_block_x + 1) * step_x;
+			int start_block_x = center_block_x - (block_x / 2);
+			int2 index = sync_info[index_block_y * number_blocks_x + index_block_x];
+			const int index_y = (index.y + offset_block_y);
+			const int index_x = (index.x + offset_block_x);
+			if (index_y > 0 && index_y < height && index_x > 0 && index_x < width)
+				image_result[(start_block_y + offset_block_y) * width + (start_block_x + offset_block_x)  ] = image_next[(index.y + offset_block_y) * width + index.x  + offset_block_x] ;
+		}
+	}
+}
+
 
 )==="

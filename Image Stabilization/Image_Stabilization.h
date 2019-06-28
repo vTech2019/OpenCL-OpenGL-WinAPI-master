@@ -28,11 +28,13 @@ struct OpenCL_data {
 	cl_int kernel_image_stabilization_part1;
 	cl_int kernel_image_stabilization_part2;
 	cl_int kernel_image_stabilization_part3;
+	cl_int kernel_image_stabilization_part4;
 	clDevice* _device;
 	size_t norm_image_gpu_0;
 	size_t norm_image_gpu_1;
 	size_t memory_buffer_0;
 	size_t memory_buffer_1;
+	size_t memory_buffer_2;
 	size_t sync_buffer;
 	size_t sync_index;
 };
