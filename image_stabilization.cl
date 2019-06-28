@@ -312,8 +312,7 @@ __kernel void stabilization_image_part3(__global uchar4* image, __global int2* s
 	int width, int height, int step_x, int step_y, int block_x, int block_y, int radius){
 	int number_blocks_x = (width / step_x) ;
 	int number_blocks_y = (height / step_y) ;
-	int part_block_x = (radius - 1) / 2; 
-	int part_block_y = (radius - 1) / 2; 
+	int size_image = width * height;
 	int size_block_fild_x = radius * 2 + block_x;
 	int size_block_fild_y = radius * 2 + block_y;
 	int2 centering_xy = (int2)(block_x / 2, block_y / 2);
@@ -332,18 +331,28 @@ __kernel void stabilization_image_part3(__global uchar4* image, __global int2* s
 			float endx = convert_float_rtn(index_xy.x);
 			if (index_xy.x == 0){
 				for (int i = 0; i <endy;i+=step_y)
-					image[(center_block_y +i  ) * width + center_block_x ] = (uchar4)255;
+					{
+						const int index = (center_block_y +i  ) * width + center_block_x;
+						if (index > 0 && index <size_image)
+							image[index] = (uchar4)255;
+					}
 			}else if(index_xy.y == 0){
-				for (int j = 0; j <endx;j+=step_x)
-					image[(center_block_y  ) * width + center_block_x + j ] = (uchar4)255;
+				for (int j = 0; j <endx;j+=step_x){
+						const int index =(center_block_y  ) * width + center_block_x + j ;
+						if (index > 0 && index <size_image)
+							image[index] = (uchar4)255;
+				}
 			}else
 				for (float i = 0, j = 0; fabs(i) < fabs(endy) && fabs(j) < fabs(endx) ; i+= step_y, j+= step_x)
 				{
-					image[(center_block_y + convert_int_rtn(i)  ) * width + center_block_x + convert_int_rtn(j) ] = (uchar4)255;
+					const int index = (center_block_y + convert_int_rtn(i)  ) * width + center_block_x + convert_int_rtn(j);
+					if (index > 0 && index <size_image)
+						image[ index] = (uchar4)255;
 				}
-
 			image[(center_block_y  ) * width + (center_block_x  )]  = (uchar4)0;
-			image[(center_block_y + index_xy.y) * width + center_block_x + index_xy.x]  = (uchar4)(255);
+			const int address_index =(center_block_y + index_xy.y) * width + center_block_x + index_xy.x;
+			if (address_index > 0 && address_index <size_image)
+				image[address_index]  = (uchar4)(255);
 		}
 	}
 }

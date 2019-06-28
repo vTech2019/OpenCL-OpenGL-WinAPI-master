@@ -85,7 +85,7 @@ Image_Stabilization::Image_Stabilization(clDevice* device, cl_uint width, cl_uin
 void Image_Stabilization::gpu_Stabilization_function(void* data_next_image, void* result) {
 	size_t buffers[] = { gpu_data->memory_buffer_0, gpu_data->memory_buffer_1, gpu_data->sync_buffer };
 	gpu_data->_device->writeBuffer(data_next_image, gpu_data->memory_buffer_0, gpu_data->width * gpu_data->height * sizeof(uchar4));
-	gpu_data->_device->writeBuffer(data_next_image, gpu_data->memory_buffer_2, gpu_data->width * gpu_data->height * sizeof(uchar4));
+//	gpu_data->_device->writeBuffer(data_next_image, gpu_data->memory_buffer_2, gpu_data->width * gpu_data->height * sizeof(uchar4));
 	gpu_data->_device->writeBuffer(result, gpu_data->memory_buffer_1, gpu_data->width * gpu_data->height * sizeof(uchar4));
 	gpu_data->_device->callOpenclFunction(gpu_data->index_program_stabilization, gpu_data->kernel_image_stabilization_part1, buffers, NULL, (cl_char*)& gpu_data->stabilization_indices, (cl_int*)& gpu_data->stabilization_length_args, 3, 0, 7, gpu_data->stabilization_globalWork, gpu_data->stabilization_localWork);
 
