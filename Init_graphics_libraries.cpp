@@ -1,6 +1,6 @@
 #include "Init_graphics_libraries.h"
 
-void printf_information(WCHAR* information, HWND hwnd) {
+void printf_information(TCHAR* information, HWND hwnd) {
 	if (information) {
 		HDC hDC = GetDC(hwnd);
 		RECT rect;
@@ -24,7 +24,7 @@ bool Init_graphics_libraries::init_clDevice()
 
 bool Init_graphics_libraries::init_glDevice()
 {
-	//gl_device = new glDevice();
+	gl_device = new glDevice();
 	return true;
 }
 
@@ -35,7 +35,12 @@ clDevice * Init_graphics_libraries::get_clDevice(size_t i)
 	}
 	return nullptr;
 }
-
+size_t Init_graphics_libraries::get_number_clPlatform() {
+	if (cl_platform)
+		return cl_platform->getNumberPlatforms();
+	else
+		return NULL;
+}
 size_t Init_graphics_libraries::get_number_clDevice()
 {
 	if (cl_platform)
@@ -49,7 +54,7 @@ Init_graphics_libraries::Init_graphics_libraries()
 	size_t width, height;
 	WinAPI information_window;
 	information_window.getScreenSize(width, height);
-	information_window.InitWindow(L"TOOLWINDOW", 400, 800, width / 2, height / 2, WS_VISIBLE | WS_POPUP | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
+	information_window.InitWindow(L"TOOLWINDOW", 400, 600, width / 2, height / 2, WS_VISIBLE | WS_POPUP | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
 	information_window.updateWindow();
 	for (size_t i = 0; i < sizeof * this; i++)
 		((char*)this)[i] = 0;

@@ -1,8 +1,10 @@
 #pragma once
+#define _USE_MATH_DEFINES
 #include <immintrin.h>
 #include <intrin.h>
 #include <Windows.h>
 #include <stdio.h>
+#include <math.h>
 #include "Structures.h"
 
 extern "C" {
@@ -36,5 +38,5 @@ public:
 	~cpuDevice();
 
 	void cpu_sse2_Gauss_function(float4* data, uchar4* result, size_t width_image, size_t height_image, float part_block_x, float part_block_y, float pow_sigma, size_t pitch_width_image, size_t offset_radius_aligned, size_t block_x, size_t block_y);
-	void cpu_MAD_SSE2_Stabilization_function(float4* data, uchar4* result, size_t width_image, size_t height_image, float part_block_x, float part_block_y, float pow_sigma, size_t pitch_width_image);
+	void cpu_SSE2_Stabilization_function(uchar4 * current_image, uchar4 * next_image, int2 * sync_data, size_t width, size_t height, size_t block_x, size_t block_y, size_t step_x, size_t step_y, size_t radius);
 };

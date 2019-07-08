@@ -260,12 +260,12 @@ void glDevice::setViewport(GLint x, GLint y, GLint width, GLint height) {
 }
 glDevice::glDevice()
 {
+	for (size_t i = 0; i < sizeof(*this); i++)
+		((GLubyte*)this)[i] = 0;
 	gl_window = new (WinAPI);
 	gl_window->InitWindow(L"OpenGL", 1920 / 2, 1080 / 2, 1920 / 2, 1080 / 2, WS_DISABLED);
 	gl_window->hideWindow();
 	gl_window->InitOpenGLContext(gl_context);
-	for (size_t i = 0; i < sizeof(*this); i++)
-		((GLubyte*)this)[i] = 0;
 	projectionMatrix = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 	matrixView = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
 	matrixRotate = { 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };

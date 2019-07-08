@@ -21,9 +21,13 @@ const char image_stabilization[] =
 #include "image_stabilization.cl"
 ;
 
+const char image_stabilization_2[] =
+#include "image_stabilization_2.cl"
+;
+
 class Init_graphics_libraries
 {
-	static void(*loopFunctions)(WCHAR* information, HWND hwnd);
+	static void(*loopFunctions)(TCHAR* information, HWND hwnd);
 	WinAPI main_window;
 	glDevice* gl_device;
 	clPlatform* cl_platform;
@@ -33,6 +37,7 @@ class Init_graphics_libraries
 	bool init_glDevice();
 public:
 	clDevice* get_clDevice(size_t i);
+	size_t get_number_clPlatform();
 	size_t get_number_clDevice();
 	Init_graphics_libraries();
 	~Init_graphics_libraries();

@@ -124,11 +124,12 @@ WinAPI::WinAPI()
 
 WinAPI::~WinAPI()
 {
+	DestroyWindow(this->main_window);
 }
 
 LRESULT CALLBACK WinAPI::WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam)
 {
-	LONG_PTR winptr = GetWindowLongPtr(hwnd, GWLP_USERDATA);
+	LONG_PTR numberLoopFunctions = GetWindowLongPtr(hwnd, GWLP_USERDATA);
 	HDC hDC;
 	PAINTSTRUCT ps;
 	switch (message)
@@ -137,9 +138,9 @@ LRESULT CALLBACK WinAPI::WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM 
 		break;
 	case WM_PAINT:
 		hDC = BeginPaint(hwnd, &ps);
-		for (size_t i = 0; i < numberLoopFunctions; i++) {
-			loopFunctions[i](ptrArgument[i]);
-		}
+		//for (size_t i = 0; i < *(size_t*)numberLoopFunctions; i++) {
+			//loopFunctions[i](ptrArgument[i]);
+		//}
 		SwapBuffers(hDC);
 		EndPaint(hwnd, &ps);
 		break;

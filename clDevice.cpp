@@ -9,8 +9,10 @@ void CL_CALLBACK pfnBuildProgram(cl_program program, void *userData)
 	if (status == CL_BUILD_IN_PROGRESS)
 	{
 		cl_int ret = clGetProgramBuildInfo(program, *deviceID, CL_PROGRAM_BUILD_LOG, NULL, NULL, &length);
-		if (ret != CL_SUCCESS)
+		if (ret != CL_SUCCESS) {
 			printf("clGetProgramBuildInfo - %d\n", ret);
+
+		}
 		cl_char* data = (cl_char*)malloc(length + 1);
 		data[length] = 0;
 		ret = clGetProgramBuildInfo(program, *deviceID, CL_PROGRAM_BUILD_LOG, length, data, NULL);
@@ -320,6 +322,7 @@ clDevice::clDevice(clPlatform* platformData, cl_uint indexDevice)
 	}
 }
 
+
 bool clDevice::clPushProgram(cl_char * text, size_t lengthText, const cl_char* options)
 {
 	cl_uint number_kernels;
@@ -328,7 +331,7 @@ bool clDevice::clPushProgram(cl_char * text, size_t lengthText, const cl_char* o
 	namesPrograms[numberPrograms] = (cl_char*)malloc(lengthText * sizeof(cl_char));
 	memcpy(namesPrograms[numberPrograms], text, lengthText);
 	printf("-----------------Program---------------------\n");
-	//printf("%s \n", namesPrograms[numberPrograms]);
+	printf("%s \n", namesPrograms[numberPrograms]);
 	printf("---------------------------------------------\n");
 	programDevice = (programData*)realloc(programDevice, (numberPrograms + 1) * sizeof(programData));
 	memset(&programDevice[numberPrograms], 0, sizeof(programData));

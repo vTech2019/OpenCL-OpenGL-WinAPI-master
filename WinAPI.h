@@ -10,9 +10,9 @@ class WinAPI
 	WNDCLASSW window_class;
 	HWND main_window;
 	MSG  msg;
-	static size_t numberLoopFunctions;
-	static void(**loopFunctions)(void* argument);
-	static void** ptrArgument;
+	size_t numberLoopFunctions;
+	void(**loopFunctions)(void* argument);
+	void** ptrArgument;
 public:
 	void updateWindow();
 	void getScreenSize(size_t& width, size_t& height);

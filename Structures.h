@@ -9,6 +9,9 @@ struct matrix_16 {
 struct uint8 {
 	uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
 };
+struct int2 {
+	int32_t x, y;
+};
 struct int8 {
 	int32_t s0, s1, s2, s3, s4, s5, s6, s7;
 };

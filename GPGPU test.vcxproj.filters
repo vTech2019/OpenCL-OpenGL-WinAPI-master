@@ -133,6 +133,9 @@
     <None Include="convolution.cl">
       <Filter>Файлы ресурсов\Convolution_Neural_Network</Filter>
     </None>
+    <None Include="image_stabilization_2.cl">
+      <Filter>Файлы ресурсов</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <MASM Include="Image Stabilization\cpu_sse2_Gauss_function.asm">

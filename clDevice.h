@@ -21,6 +21,7 @@
 	 assert(0);\
    } while (0)
 
+
 struct cl_memory_list {
 	cl_mem memory_data;
 	cl_memory_list* previous;

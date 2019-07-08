@@ -12,7 +12,7 @@ __m128 _ExpSse(__m128 x)
 }
 void cpuDevice::cpu_sse2_Gauss_function(float4* data, uchar4* result, size_t width_image, size_t height_image, float part_block_x, float part_block_y, float pow_sigma, size_t pitch_width_image, size_t offset_radius_aligned, size_t block_x, size_t block_y)
 {
-	float4* ptr_memory_image = data;// +radius * pitch_width_image;
+	float4* ptr_memory_image = data;
 	uchar4* ptr_image = (uchar4*)result;
 	size_t pitch_width = pitch_width_image;
 	size_t width = width_image;
@@ -68,6 +68,114 @@ void cpuDevice::cpu_sse2_Gauss_function(float4* data, uchar4* result, size_t wid
 	//	}
 	//}
 }
-void cpuDevice::cpu_MAD_SSE2_Stabilization_function(float4* data, uchar4* result, size_t width_image, size_t height_image, float part_block_x, float part_block_y, float pow_sigma, size_t pitch_width_image ) {
+
+float gauss_function(float x, float y, float sigma) {
+	const float _y = y * y;
+	const float _x = x * x;
+	const float _sigma = 2.0f*sigma*sigma;
+	const float div = (_y + _x) / _sigma;
+	return expf(-div) / (_sigma * M_PI);
+}
+
+void cpuDevice::cpu_SSE2_Stabilization_function(uchar4* current_image, 
+	uchar4* next_image, int2* sync_data, size_t width, size_t height, 
+	size_t block_x, size_t block_y, size_t step_x, size_t step_y, size_t radius ) {
+	size_t number_block_x = width / block_x;
+	size_t number_block_y = height / block_y;
+	size_t end_block_x = number_block_x ;
+	size_t end_block_y = number_block_y ;
+	float_t w = 4.0f * sqrtf(2.0f * logf(2.0f));
+	float_t sigma = block_x / w;
+	int2 centering_xy = (int2)(block_x / 2, block_y / 2);
+	for (size_t h = 0; h < end_block_y; h++) {
+		size_t id_block_y = h;
+		size_t center_block_y = id_block_y * step_y;
+		ptrdiff_t start_y = center_block_y - block_y / 2;
+		for (size_t w = 0; w < end_block_x; w++) {
+			size_t id_block_x = w;
+			size_t center_block_x = id_block_x * step_x;
+			ptrdiff_t start_x = center_block_x - block_x / 2;
+			int2 min_index = { 0,0 };
+			float min_sum = UINT_MAX;
+			for (ptrdiff_t i = -radius; i < radius  + block_y; i++) {
+				for (ptrdiff_t j = -radius; j < radius + block_x; j++) {
+					float4 sum = { 0, 0, 0, 0 };
+					for (size_t b_y = 0; b_y < block_y; b_y++) {
+						for (size_t b_x = 0; b_x < block_x; b_x++) {
+							float_t gauss_result =  gauss_function(b_x, b_y, sigma);
+							size_t index_y = i + b_y;
+							size_t index_x = j + b_x;
+							float4 current_data = { 0,0,0,255 };
+							if (index_x < width && index_x <= 0 && index_y < height && index_y <= 0) {
+								current_data.x = current_image[index_y * width + index_x].r;
+								current_data.y = current_image[index_y * width + index_x].g;
+								current_data.z = current_image[index_y * width + index_x].b;
+								current_data.w = current_image[index_y * width + index_x].a;
+							}
+							float4 next_data = { 0,0,0,255 };
+							index_x += w;
+							index_y += h;
+							if (index_x < width && index_x <= 0 && index_y < height && index_y <= 0) {
+								next_data.x = next_image[index_y * width + index_x].r;
+								next_data.y = next_image[index_y * width + index_x].g;
+								next_data.z = next_image[index_y * width + index_x].b;
+								next_data.w = next_image[index_y * width + index_x].a;
+							}
+							sum.x = int(gauss_result * current_data.x - gauss_result * next_data.x) & 0xefffffff;
+							sum.y = int(gauss_result * current_data.y - gauss_result * next_data.y) & 0xefffffff;
+							sum.z = int(gauss_result * current_data.z - gauss_result * next_data.z) & 0xefffffff;
+							sum.w= int(gauss_result * current_data.w - gauss_result * next_data.w) & 0xefffffff;
+						}
+					}
+					sum.x /= block_x * block_y;
+					sum.y /= block_x * block_y;
+					sum.z /= block_x * block_y;
+					sum.w /= block_x * block_y;
+					float_t length = sum.x * sum.x + sum.y * sum.y + sum.z * sum.z + sum.w * sum.w;
+					if (min_sum > length) {
+						length = min_sum;
+						min_index = { i, j };
+					}
+
+				}
+			}
+			min_index.x += radius;
+			min_index.y += radius;
+			sync_data[h * end_block_x + w] = min_index;
+		}
+	}
+	for (size_t h = 0; h < number_block_y; h++) {
+		size_t center_block_y = (h + 1) * step_y;
+		for (size_t w = 0; w < number_block_x; w++) {
+			size_t center_block_x = (w + 1) * step_x;
+			int2 index = sync_data[h * number_block_x + w];
+			int2 offset;
+			offset.x = center_block_x - index.x - centering_xy.x;
+			offset.y = center_block_y - index.y - centering_xy.y;
+			{
+				float step_x;
+				float step_y;
+				step_x = index.x > 0 ? 1.0f : -1.0f;
+				step_y = index.y > 0 ? 1.0f : -1.0f;
+				if (abs(index.x) < abs(index.y))
+					step_x *= abs(index.x)) / (abs(index.y);
+				else
+					step_y *= abs(index.y) / (abs(index.x));
+				float end_x = (index.x);
+				float end_y = (index.y);
+				for (float start_x = 0, start_y = 0; fabs(start_x) < fabs(end_x) || fabs(start_y) < fabs(end_y); start_x += step_x, start_y += step_y)
+				{
+					const int index = (center_block_y + start_y) * width + center_block_x + start_x;
+					if (index > 0 && index < (width * height))
+						current_image[index] = { 255, 255,255,255 };
+				}
+				current_image[(center_block_y)* width + (center_block_x)] = { 0, 0, 0, 0 };
+				const ptrdiff_t address_index = (center_block_y + index.y) * width + center_block_x + index.x;
+				if (address_index > 0 && address_index < (width * height))
+					current_image[address_index] = { 255, 0, 255, 255 };
+			}
+		}
+	}
+
 
 }
