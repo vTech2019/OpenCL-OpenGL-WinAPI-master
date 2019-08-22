@@ -9,8 +9,14 @@ struct matrix_16 {
 struct uint8 {
 	uint32_t s0, s1, s2, s3, s4, s5, s6, s7;
 };
+struct uint2 {
+	size_t x, y;
+};
 struct int2 {
 	int32_t x, y;
+};
+struct longlong2 {
+	long long x, y;
 };
 struct int8 {
 	int32_t s0, s1, s2, s3, s4, s5, s6, s7;

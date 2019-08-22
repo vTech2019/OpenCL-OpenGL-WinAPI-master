@@ -1,8 +1,8 @@
 #include "clDevice.h"
 
-void CL_CALLBACK pfnBuildProgram(cl_program program, void *userData)
+void CL_CALLBACK pfnBuildProgram(cl_program program, void* userData)
 {
-	cl_device_id *deviceID = (cl_device_id*)userData;
+	cl_device_id* deviceID = (cl_device_id*)userData;
 	cl_build_status status;
 	size_t length = 0;
 	cl_int ret = clGetProgramBuildInfo(program, *deviceID, CL_PROGRAM_BUILD_STATUS, sizeof(cl_build_status), &status, &length);
@@ -11,7 +11,6 @@ void CL_CALLBACK pfnBuildProgram(cl_program program, void *userData)
 		cl_int ret = clGetProgramBuildInfo(program, *deviceID, CL_PROGRAM_BUILD_LOG, NULL, NULL, &length);
 		if (ret != CL_SUCCESS) {
 			printf("clGetProgramBuildInfo - %d\n", ret);
-
 		}
 		cl_char* data = (cl_char*)malloc(length + 1);
 		data[length] = 0;
@@ -213,26 +212,33 @@ clPlatform::clPlatform() {
 		devices = (cl_device_id*)realloc(devices, (platformDevices[getNextPlatform] + numberDevices) * sizeof(cl_device_id));
 		queue = (cl_command_queue*)realloc(queue, (platformDevices[getNextPlatform] + numberDevices) * sizeof(cl_command_queue));
 		CL_CHECK(clGetDeviceIDs(platforms[getNextPlatform], CL_DEVICE_TYPE_ALL, platformDevices[getNextPlatform], devices + numberDevices, NULL), "clGetDeviceIDs");
-		context[getNextPlatform] = clCreateContext(properties, platformDevices[getNextPlatform], devices + numberDevices, NULL, NULL, &errorCode);
-		if (errorCode == CL_DEVICE_NOT_AVAILABLE) {
-			cl_char* profileVersionNameVendorExtensions[5];
-			platformInfo(platforms[getNextPlatform], CL_PLATFORM_VENDOR, (const cl_char*)"CL_PLATFORM_VENDOR", profileVersionNameVendorExtensions);
-			platformInfo(platforms[getNextPlatform], CL_PLATFORM_NAME, (const cl_char*)"CL_PLATFORM_NAME", profileVersionNameVendorExtensions);
-			platformInfo(platforms[getNextPlatform], CL_PLATFORM_VERSION, (const cl_char*)"CL_PLATFORM_VERSION", profileVersionNameVendorExtensions);
-			platformInfo(platforms[getNextPlatform], CL_PLATFORM_PROFILE, (const cl_char*)"CL_PLATFORM_PROFILE", profileVersionNameVendorExtensions);
-			printf("CL_DEVICE_NOT_AVAILABLE!\n");
-			clReleaseDevice(devices[numberDevices]);
-			devices = (cl_device_id*)realloc(devices, (numberDevices) * sizeof(cl_device_id));
-			queue = (cl_command_queue*)realloc(queue, (numberDevices) * sizeof(cl_command_queue));
+		cl_context ctx = clCreateContext(properties, platformDevices[getNextPlatform], devices + numberDevices, NULL, NULL, &errorCode);
+		if (ctx) {
+			context[getNextPlatform] = ctx;
+			if (errorCode == CL_DEVICE_NOT_AVAILABLE) {
+				cl_char* profileVersionNameVendorExtensions[5];
+				platformInfo(platforms[getNextPlatform], CL_PLATFORM_VENDOR, (const cl_char*)"CL_PLATFORM_VENDOR", profileVersionNameVendorExtensions);
+				platformInfo(platforms[getNextPlatform], CL_PLATFORM_NAME, (const cl_char*)"CL_PLATFORM_NAME", profileVersionNameVendorExtensions);
+				platformInfo(platforms[getNextPlatform], CL_PLATFORM_VERSION, (const cl_char*)"CL_PLATFORM_VERSION", profileVersionNameVendorExtensions);
+				platformInfo(platforms[getNextPlatform], CL_PLATFORM_PROFILE, (const cl_char*)"CL_PLATFORM_PROFILE", profileVersionNameVendorExtensions);
+				printf("CL_DEVICE_NOT_AVAILABLE!\n");
+				clReleaseDevice(devices[numberDevices]);
+				devices = (cl_device_id*)realloc(devices, (numberDevices) * sizeof(cl_device_id));
+				queue = (cl_command_queue*)realloc(queue, (numberDevices) * sizeof(cl_command_queue));
+			}
+			else {
+				CL_CHECK(errorCode, "clCreateContext");
+				for (cl_uint j = 0; j < platformDevices[getNextPlatform]; j++) {
+					queue[numberDevices + j] = clCreateCommandQueue(context[getNextPlatform], devices[numberDevices + j], CL_QUEUE_PROFILING_ENABLE, &errorCode);
+					CL_CHECK(errorCode, "clCreateCommandQueue");
+				}
+				numberDevices += platformDevices[getNextPlatform];
+				getNextPlatform++;
+			}
 		}
 		else {
-			CL_CHECK(errorCode, "clCreateContext");
-			for (cl_uint j = 0; j < platformDevices[getNextPlatform]; j++) {
-				queue[numberDevices + j] = clCreateCommandQueue(context[getNextPlatform], devices[numberDevices + j], CL_QUEUE_PROFILING_ENABLE, &errorCode);
-				CL_CHECK(errorCode, "clCreateCommandQueue");
-			}
-			numberDevices += platformDevices[getNextPlatform];
-			getNextPlatform++;
+			devices = (cl_device_id*)realloc(devices, (numberDevices) * sizeof(cl_device_id));
+			queue = (cl_command_queue*)realloc(queue, (numberDevices) * sizeof(cl_command_queue));
 		}
 	}
 }
@@ -294,40 +300,39 @@ clDevice::clDevice(clPlatform* platformData, cl_uint indexDevice)
 	platformInfo(*platform, CL_PLATFORM_PROFILE, (const cl_char*)"CL_PLATFORM_PROFILE", profileVersionNameVendorExtensions);
 	platformInfo(*platform, CL_PLATFORM_EXTENSIONS, (const cl_char*)"CL_PLATFORM_EXTENSIONS", profileVersionNameVendorExtensions);
 
-	deviceInfo(*device, CL_DEVICE_EXTENSIONS, (const cl_char*)"CL_DEVICE_EXTENSIONS", (void**)&DeviceInfo.deviceExtensions, 0);
-	deviceInfo(*device, CL_DEVICE_VENDOR, (const cl_char*)"CL_DEVICE_VENDOR_ID", (void**)&DeviceInfo.deviceVendor, 0);
-	deviceInfo(*device, CL_DEVICE_TYPE, (const cl_char*)"CL_DEVICE_TYPE", (void**)&DeviceInfo.deviceType, sizeof(cl_device_type));
-	deviceInfo(*device, CL_DEVICE_LOCAL_MEM_TYPE, (const cl_char*)"CL_DEVICE_LOCAL_MEM_TYPE", (void**)&DeviceInfo.localMemoryType, sizeof(cl_device_local_mem_type));
-	deviceInfo(*device, CL_DEVICE_MAX_COMPUTE_UNITS, (const cl_char*)"CL_DEVICE_MAX_COMPUTE_UNITS", (void**)&DeviceInfo.maxComputeUnits, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, (const cl_char*)"CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS", (void**)&DeviceInfo.workItemDemension, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_MAX_WORK_ITEM_SIZES, (const cl_char*)"CL_DEVICE_MAX_WORK_ITEM_SIZES", (void**)&DeviceInfo.workItemSizes, 3 * sizeof(size_t));
-	deviceInfo(*device, CL_DEVICE_LOCAL_MEM_SIZE, (const cl_char*)"CL_DEVICE_LOCAL_MEM_SIZE", (void**)&DeviceInfo.localMemorySize, sizeof(cl_ulong));
-	deviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, (const cl_char*)"CL_DEVICE_MAX_MEM_ALLOC_SIZE", (void**)&DeviceInfo.maxGlobalMemoryAllocate, sizeof(cl_ulong));
-	deviceInfo(*device, CL_DEVICE_MAX_PARAMETER_SIZE, (const cl_char*)"CL_DEVICE_MAX_PARAMETER_SIZE", (void**)&DeviceInfo.maximumParametersInKernel, sizeof(size_t));
-	deviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, (const cl_char*)"CL_DEVICE_MAX_WORK_GROUP_SIZE", (void**)&DeviceInfo.maxWorkGroupSize, sizeof(size_t));
-	deviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, (const cl_char*)"CL_DEVICE_GLOBAL_MEM_SIZE", (void**)&DeviceInfo.globalMemSize, sizeof(cl_ulong));
-	deviceInfo(*device, CL_DEVICE_IMAGE_SUPPORT, (const cl_char*)"CL_DEVICE_IMAGE_SUPPORT", (void**)&DeviceInfo.supportImages, sizeof(cl_bool));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR", (void**)&DeviceInfo.preferVectorChar, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT", (void**)&DeviceInfo.preferVectorShort, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT", (void**)&DeviceInfo.preferVectorInt, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG", (void**)&DeviceInfo.preferVectorLong, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT", (void**)&DeviceInfo.preferVectorFloat, sizeof(cl_uint));
-	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE", (void**)&DeviceInfo.preferVectorDouble, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_EXTENSIONS, (const cl_char*)"CL_DEVICE_EXTENSIONS", (void**)& DeviceInfo.deviceExtensions, 0);
+	deviceInfo(*device, CL_DEVICE_VENDOR, (const cl_char*)"CL_DEVICE_VENDOR_ID", (void**)& DeviceInfo.deviceVendor, 0);
+	deviceInfo(*device, CL_DEVICE_TYPE, (const cl_char*)"CL_DEVICE_TYPE", (void**)& DeviceInfo.deviceType, sizeof(cl_device_type));
+	deviceInfo(*device, CL_DEVICE_LOCAL_MEM_TYPE, (const cl_char*)"CL_DEVICE_LOCAL_MEM_TYPE", (void**)& DeviceInfo.localMemoryType, sizeof(cl_device_local_mem_type));
+	deviceInfo(*device, CL_DEVICE_MAX_COMPUTE_UNITS, (const cl_char*)"CL_DEVICE_MAX_COMPUTE_UNITS", (void**)& DeviceInfo.maxComputeUnits, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS, (const cl_char*)"CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS", (void**)& DeviceInfo.workItemDemension, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_MAX_WORK_ITEM_SIZES, (const cl_char*)"CL_DEVICE_MAX_WORK_ITEM_SIZES", (void**)& DeviceInfo.workItemSizes, 3 * sizeof(size_t));
+	deviceInfo(*device, CL_DEVICE_LOCAL_MEM_SIZE, (const cl_char*)"CL_DEVICE_LOCAL_MEM_SIZE", (void**)& DeviceInfo.localMemorySize, sizeof(cl_ulong));
+	deviceInfo(*device, CL_DEVICE_MAX_MEM_ALLOC_SIZE, (const cl_char*)"CL_DEVICE_MAX_MEM_ALLOC_SIZE", (void**)& DeviceInfo.maxGlobalMemoryAllocate, sizeof(cl_ulong));
+	deviceInfo(*device, CL_DEVICE_MAX_PARAMETER_SIZE, (const cl_char*)"CL_DEVICE_MAX_PARAMETER_SIZE", (void**)& DeviceInfo.maximumParametersInKernel, sizeof(size_t));
+	deviceInfo(*device, CL_DEVICE_MAX_WORK_GROUP_SIZE, (const cl_char*)"CL_DEVICE_MAX_WORK_GROUP_SIZE", (void**)& DeviceInfo.maxWorkGroupSize, sizeof(size_t));
+	deviceInfo(*device, CL_DEVICE_GLOBAL_MEM_SIZE, (const cl_char*)"CL_DEVICE_GLOBAL_MEM_SIZE", (void**)& DeviceInfo.globalMemSize, sizeof(cl_ulong));
+	deviceInfo(*device, CL_DEVICE_IMAGE_SUPPORT, (const cl_char*)"CL_DEVICE_IMAGE_SUPPORT", (void**)& DeviceInfo.supportImages, sizeof(cl_bool));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_CHAR", (void**)& DeviceInfo.preferVectorChar, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_SHORT", (void**)& DeviceInfo.preferVectorShort, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_INT", (void**)& DeviceInfo.preferVectorInt, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_LONG", (void**)& DeviceInfo.preferVectorLong, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_FLOAT", (void**)& DeviceInfo.preferVectorFloat, sizeof(cl_uint));
+	deviceInfo(*device, CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE, (const cl_char*)"CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE", (void**)& DeviceInfo.preferVectorDouble, sizeof(cl_uint));
 	if (DeviceInfo.supportImages) {
-		deviceInfo(*device, CL_DEVICE_IMAGE2D_MAX_HEIGHT, (const cl_char*)"CL_DEVICE_IMAGE2D_MAX_HEIGHT", (void**)&DeviceInfo.maxHeightImage2D, sizeof(size_t));
-		deviceInfo(*device, CL_DEVICE_IMAGE2D_MAX_WIDTH, (const cl_char*)"CL_DEVICE_IMAGE2D_MAX_WIDTH", (void**)&DeviceInfo.maxWidthImage2D, sizeof(size_t));
-		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_HEIGHT, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_HEIGHT", (void**)&DeviceInfo.maxHeightImage3D, sizeof(size_t));
-		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_WIDTH, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_WIDTH", (void**)&DeviceInfo.maxWidthImage3D, sizeof(size_t));
-		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_DEPTH, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_DEPTH", (void**)&DeviceInfo.maxDepthImage3D, sizeof(size_t));
+		deviceInfo(*device, CL_DEVICE_IMAGE2D_MAX_HEIGHT, (const cl_char*)"CL_DEVICE_IMAGE2D_MAX_HEIGHT", (void**)& DeviceInfo.maxHeightImage2D, sizeof(size_t));
+		deviceInfo(*device, CL_DEVICE_IMAGE2D_MAX_WIDTH, (const cl_char*)"CL_DEVICE_IMAGE2D_MAX_WIDTH", (void**)& DeviceInfo.maxWidthImage2D, sizeof(size_t));
+		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_HEIGHT, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_HEIGHT", (void**)& DeviceInfo.maxHeightImage3D, sizeof(size_t));
+		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_WIDTH, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_WIDTH", (void**)& DeviceInfo.maxWidthImage3D, sizeof(size_t));
+		deviceInfo(*device, CL_DEVICE_IMAGE3D_MAX_DEPTH, (const cl_char*)"CL_DEVICE_IMAGE3D_MAX_DEPTH", (void**)& DeviceInfo.maxDepthImage3D, sizeof(size_t));
 	}
 }
 
-
-bool clDevice::clPushProgram(cl_char * text, size_t lengthText, const cl_char* options)
+bool clDevice::clPushProgram(cl_char* text, size_t lengthText, const cl_char* options)
 {
 	cl_uint number_kernels;
 	cl_int errorCode;
-	namesPrograms = (cl_char**)realloc(namesPrograms, (numberPrograms + 1) * sizeof(cl_char*));
+	namesPrograms = (cl_char * *)realloc(namesPrograms, (numberPrograms + 1) * sizeof(cl_char*));
 	namesPrograms[numberPrograms] = (cl_char*)malloc(lengthText * sizeof(cl_char));
 	memcpy(namesPrograms[numberPrograms], text, lengthText);
 	printf("-----------------Program---------------------\n");
@@ -335,14 +340,14 @@ bool clDevice::clPushProgram(cl_char * text, size_t lengthText, const cl_char* o
 	printf("---------------------------------------------\n");
 	programDevice = (programData*)realloc(programDevice, (numberPrograms + 1) * sizeof(programData));
 	memset(&programDevice[numberPrograms], 0, sizeof(programData));
-	programDevice[numberPrograms].programDevice = clCreateProgramWithSource(*context, 1, (const char**)&text, NULL, &errorCode);
+	programDevice[numberPrograms].programDevice = clCreateProgramWithSource(*context, 1, (const char**)& text, NULL, &errorCode);
 	CL_CHECK(errorCode, "clCreateProgramWithSource");
 	CL_CHECK(clBuildProgram(programDevice[numberPrograms].programDevice, 1, device, (const char*)options, pfnBuildProgram, (void*)device), "clBuildProgram");
 	CL_CHECK(clCreateKernelsInProgram(programDevice[numberPrograms].programDevice, NULL, NULL, &number_kernels), "clCreateKernelsInProgram");
 	if (number_kernels) {
 		programDevice[numberPrograms].kernels = (cl_kernel*)realloc(programDevice[numberPrograms].kernels, (number_kernels) * sizeof(cl_kernel));
 		CL_CHECK(clCreateKernelsInProgram(programDevice[numberPrograms].programDevice, number_kernels, programDevice[numberPrograms].kernels, NULL), "clCreateKernelsInProgram");
-		programDevice[numberPrograms].namesKernels = (cl_char**)realloc(programDevice[numberPrograms].namesKernels, (number_kernels) * sizeof(cl_char*));
+		programDevice[numberPrograms].namesKernels = (cl_char * *)realloc(programDevice[numberPrograms].namesKernels, (number_kernels) * sizeof(cl_char*));
 		programDevice[numberPrograms].kernelInfo = (kernelInformation*)realloc(programDevice[numberPrograms].kernelInfo, (number_kernels) * sizeof(kernelInformation));
 		printf("-----------------kernels---------------------\n");
 		for (size_t i = 0; i < number_kernels; i++) {
@@ -376,7 +381,7 @@ bool clDevice::rebuildProgram(size_t index_program, const cl_char* options, size
 		if (number_kernels) {
 			programDevice[index_program].kernels = (cl_kernel*)realloc(programDevice[index_program].kernels, (number_kernels) * sizeof(cl_kernel));
 			CL_CHECK(clCreateKernelsInProgram(programDevice[index_program].programDevice, number_kernels, programDevice[index_program].kernels, NULL), "clCreateKernelsInProgram");
-			programDevice[index_program].namesKernels = (cl_char**)realloc(programDevice[index_program].namesKernels, (number_kernels) * sizeof(cl_char*));
+			programDevice[index_program].namesKernels = (cl_char * *)realloc(programDevice[index_program].namesKernels, (number_kernels) * sizeof(cl_char*));
 			programDevice[index_program].kernelInfo = (kernelInformation*)realloc(programDevice[index_program].kernelInfo, (number_kernels) * sizeof(kernelInformation));
 			printf("-----------------kernels---------------------\n");
 			for (size_t i = 0; i < number_kernels; i++) {
@@ -416,7 +421,7 @@ cl_int clDevice::findKernel(const cl_char* text, size_t length, cl_uint& indexPr
 	return -1;
 }
 
-bool clDevice::clPushKernel(cl_char * text, size_t lengthText)
+bool clDevice::clPushKernel(cl_char* text, size_t lengthText)
 {
 	cl_int errorCode;
 	cl_kernel kernel = NULL;
@@ -430,7 +435,7 @@ bool clDevice::clPushKernel(cl_char * text, size_t lengthText)
 	}
 	if (kernel == NULL)
 		return false;
-	programDevice[i].namesKernels = (cl_char**)realloc(programDevice[i].namesKernels, (programDevice[i].numberKernels + 1) * sizeof(cl_char*));
+	programDevice[i].namesKernels = (cl_char * *)realloc(programDevice[i].namesKernels, (programDevice[i].numberKernels + 1) * sizeof(cl_char*));
 	programDevice[i].namesKernels[programDevice[i].numberKernels] = (cl_char*)malloc((1 + lengthText) * sizeof(cl_char));
 	memcpy(programDevice[i].namesKernels[programDevice[i].numberKernels], text, lengthText);
 	programDevice[i].namesKernels[programDevice[i].numberKernels][lengthText] = 0;
@@ -646,9 +651,9 @@ clDevice::~clDevice()
 			clReleaseKernel(programDevice[i].kernels[j]);
 			if (programDevice[i].namesKernels[j]) free(programDevice[i].namesKernels[j]);
 		}
-			if (programDevice[i].kernelInfo) free(programDevice[i].kernelInfo);
-			if (programDevice[i].kernels) free(programDevice[i].kernels);
-			if (programDevice[i].namesKernels) free(programDevice[i].namesKernels);
+		if (programDevice[i].kernelInfo) free(programDevice[i].kernelInfo);
+		if (programDevice[i].kernels) free(programDevice[i].kernels);
+		if (programDevice[i].namesKernels) free(programDevice[i].namesKernels);
 	}
 	for (size_t i = 0; i < numberPrograms; i++)
 		clReleaseProgram(programDevice[i].programDevice),

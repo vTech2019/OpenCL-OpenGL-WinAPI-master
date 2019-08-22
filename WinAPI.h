@@ -15,8 +15,8 @@ class WinAPI
 	void** ptrArgument;
 public:
 	void updateWindow();
-	void getScreenSize(size_t& width, size_t& height);
-	void getWindowSize(size_t& width, size_t& height);
+	void getScreenSize(LONG& width, LONG& height);
+	void getWindowSize(LONG& width, LONG& height);
 	void hideWindow();
 	void pushFunction(void(*ptrLoopFunctions)(void *argument), void * argument);
 	void InitWindow(wchar_t * name_window, size_t width, size_t height, size_t position_x, size_t position_y, unsigned long parameters_window);

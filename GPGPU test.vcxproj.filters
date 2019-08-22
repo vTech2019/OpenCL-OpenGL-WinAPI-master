@@ -75,6 +75,12 @@
     <ClCompile Include="Init_graphics_libraries.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="WebCamera.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="glad\src\glad.c">
+      <Filter>Исходные файлы\GPU_CPU_devices</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Load_Save_Images.h">
@@ -111,6 +117,9 @@
       <Filter>Файлы заголовков\GPU_CPU_devices</Filter>
     </ClInclude>
     <ClInclude Include="Init_graphics_libraries.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="WebCamera.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

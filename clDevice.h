@@ -18,7 +18,7 @@
      if (codeError == CL_SUCCESS)													\
        break;																		\
      printf("\nOpenCL Error: '%s' returned %s!\n", stringError, getInformationError(codeError));	\
-	 assert(0);\
+	assert(0);\
    } while (0)
 
 

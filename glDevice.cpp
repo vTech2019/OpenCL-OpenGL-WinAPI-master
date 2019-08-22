@@ -272,18 +272,14 @@ glDevice::glDevice()
 	Eye = { 0.0f, 0.0f, 20.0f };
 	Center = { 0.0f, 0.0f, 0.0f };
 	Up = { 0.0f, 1.0f, 0.0f };
+	if (!gladLoadGL()) 
+		return;
 	const GLubyte* name_device =(GLubyte*) glGetString(GL_RENDERER); 
 	const GLubyte* version_device = (GLubyte*)glGetString(GL_VERSION);
 	printf("--------------Name device--------------\n %s \n", name_device);
 	printf("---------------------------------------\n");
 	printf("--------------OpenGL version on device--------------\n %s \n", version_device);
 	printf("----------------------------------------------------\n ");
-	if (glewInit() != GLEW_OK)
-	{
-		printf("Error glewInit!\n");
-		return;
-	}
-	glewExperimental = GL_TRUE;
 	glEnable(GL_DEPTH_TEST);
 	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

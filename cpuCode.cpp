@@ -86,7 +86,7 @@ void cpuDevice::cpu_SSE2_Stabilization_function(uchar4* current_image,
 	size_t end_block_y = number_block_y ;
 	float_t w = 4.0f * sqrtf(2.0f * logf(2.0f));
 	float_t sigma = block_x / w;
-	int2 centering_xy = (int2)(block_x / 2, block_y / 2);
+	uint2 centering_xy = { block_x / 2, block_y / 2 };
 	for (size_t h = 0; h < end_block_y; h++) {
 		size_t id_block_y = h;
 		size_t center_block_y = id_block_y * step_y;
@@ -97,8 +97,8 @@ void cpuDevice::cpu_SSE2_Stabilization_function(uchar4* current_image,
 			ptrdiff_t start_x = center_block_x - block_x / 2;
 			int2 min_index = { 0,0 };
 			float min_sum = UINT_MAX;
-			for (ptrdiff_t i = -radius; i < radius  + block_y; i++) {
-				for (ptrdiff_t j = -radius; j < radius + block_x; j++) {
+			for (int i = -radius; i < radius  + block_y; i++) {
+				for (int j = -radius; j < radius + block_x; j++) {
 					float4 sum = { 0, 0, 0, 0 };
 					for (size_t b_y = 0; b_y < block_y; b_y++) {
 						for (size_t b_x = 0; b_x < block_x; b_x++) {
@@ -158,7 +158,7 @@ void cpuDevice::cpu_SSE2_Stabilization_function(uchar4* current_image,
 				step_x = index.x > 0 ? 1.0f : -1.0f;
 				step_y = index.y > 0 ? 1.0f : -1.0f;
 				if (abs(index.x) < abs(index.y))
-					step_x *= abs(index.x)) / (abs(index.y);
+					step_x *= abs(index.x) / abs(index.y);
 				else
 					step_y *= abs(index.y) / (abs(index.x));
 				float end_x = (index.x);

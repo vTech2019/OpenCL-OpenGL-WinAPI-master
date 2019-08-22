@@ -5,16 +5,8 @@
 #include <malloc.h>
 #include "Structures.h"
 #include <immintrin.h>
-#define GLEW_STATIC
-#include "glew/include/GL/glew.h"
-#ifndef _WIN64
-#pragma comment(lib, "glew/lib/Release/Win32/glew32s.lib")
-#pragma comment(lib, "opengl32.lib")
-#else
-#pragma comment(lib, "glew/lib/Release/x64/glew32s.lib")
-#pragma comment(lib, "opengl32.lib")
-#endif
-
+#include "glad/include/glad/glad.h"
+#pragma comment(lib, "opengl32")
 struct gl_texture_list {
 	unsigned int type_memory;
 	unsigned int memory_data;

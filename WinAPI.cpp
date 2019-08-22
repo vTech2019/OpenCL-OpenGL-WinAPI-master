@@ -1,6 +1,6 @@
 #include "WinAPI.h"
 
-void WinAPI::getScreenSize(size_t& width, size_t& height)
+void WinAPI::getScreenSize(LONG& width, LONG& height)
 {
 	RECT rect;
 	if (GetWindowRect(GetDesktopWindow(), &rect)) {
@@ -9,7 +9,7 @@ void WinAPI::getScreenSize(size_t& width, size_t& height)
 	}
 }
 
-void WinAPI::getWindowSize(size_t& width, size_t& height)
+void WinAPI::getWindowSize(LONG& width, LONG& height)
 {
 	RECT rect;
 	if (GetWindowRect(main_window, &rect)) {

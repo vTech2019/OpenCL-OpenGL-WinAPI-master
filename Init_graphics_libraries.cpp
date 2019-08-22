@@ -51,7 +51,7 @@ size_t Init_graphics_libraries::get_number_clDevice()
 
 Init_graphics_libraries::Init_graphics_libraries()
 {
-	size_t width, height;
+	LONG width, height;
 	WinAPI information_window;
 	information_window.getScreenSize(width, height);
 	information_window.InitWindow(L"TOOLWINDOW", 400, 600, width / 2, height / 2, WS_VISIBLE | WS_POPUP | WS_EX_TOPMOST | WS_EX_TOOLWINDOW);
